@@ -17,13 +17,11 @@
 
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
     <script>
-        // MQTT over WebSocket configuration
         const brokerUrl = 'ws://157.173.101.159:9001/mqtt';
         const sensorTopic = 'sensor/data';
         const ledTopic = 'climateControl';
         let ledState = 'OFF';
 
-        // Connect to MQTT broker
         const client = mqtt.connect(brokerUrl, {
             clientId: 'web_client_' + Math.random().toString(16).slice(3)
         });
@@ -37,7 +35,6 @@
             });
         });
 
-        // Handle incoming sensor data
         client.on('message', (topic, message) => {
             if (topic === sensorTopic) {
                 try {
@@ -50,7 +47,6 @@
             }
         });
 
-        // LED toggle button
         document.getElementById('ledToggle').addEventListener('click', () => {
             ledState = ledState === 'OFF' ? 'ON' : 'OFF';
             const payload = JSON.stringify({ led: ledState });
