@@ -1,58 +1,556 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sensor Dashboard</title>
+    <title>IoT Sensor Dashboard</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
-        #sensorData { margin-bottom: 20px; font-size: 18px; }
-        button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .dashboard-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            max-width: 800px;
+            width: 100%;
+            animation: slideUp 0.8s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 10px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .status-connected {
+            background: rgba(34, 197, 94, 0.1);
+            color: #22c55e;
+            border: 1px solid rgba(34, 197, 94, 0.2);
+        }
+
+        .status-disconnected {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        .sensor-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+
+        .sensor-card {
+            background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .sensor-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 16px 16px 0 0;
+        }
+
+        .sensor-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .sensor-icon {
+            font-size: 2.5rem;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .sensor-label {
+            font-size: 1rem;
+            color: #64748b;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .sensor-value {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 8px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .sensor-unit {
+            font-size: 1rem;
+            color: #94a3b8;
+            font-weight: 500;
+        }
+
+        .loading {
+            color: #94a3b8;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .controls-section {
+            background: linear-gradient(135deg, #1e293b, #334155);
+            border-radius: 16px;
+            padding: 32px;
+            text-align: center;
+        }
+
+        .controls-title {
+            color: white;
+            font-size: 1.5rem;
+            margin-bottom: 24px;
+            font-weight: 600;
+        }
+
+        .led-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+            padding: 12px 24px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-weight: 500;
+        }
+
+        .led-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ef4444;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+        }
+
+        .led-indicator.on {
+            background: #22c55e;
+            box-shadow: 0 0 15px rgba(34, 197, 94, 0.8);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .control-button {
+            padding: 14px 28px;
+            font-size: 1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 120px;
+            justify-content: center;
+        }
+
+        .btn-on {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+            box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);
+        }
+
+        .btn-on:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(34, 197, 94, 0.4);
+        }
+
+        .btn-off {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-off:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(239, 68, 68, 0.4);
+        }
+
+        .control-button:active {
+            transform: translateY(0);
+        }
+
+        .last-updated {
+            margin-top: 24px;
+            color: #94a3b8;
+            font-size: 0.9rem;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-container {
+                padding: 24px;
+                margin: 10px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .sensor-grid {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+
+            .button-group {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .control-button {
+                width: 100%;
+                max-width: 200px;
+            }
+        }
+
+        .data-history {
+            margin-top: 24px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .history-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            font-size: 0.9rem;
+            color: #64748b;
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
     </style>
 </head>
+
 <body>
-    <h1>Sensor Dashboard</h1>
-    <div id="sensorData">Temperature: -- °C | Humidity: -- %</div>
-    <button id="ledToggle">Toggle LED</button>
+    <div class="dashboard-container">
+        <div class="header">
+            <h1><i class="fas fa-microchip"></i> IoT Sensor Dashboard</h1>
+            <p>Real-time environmental monitoring system</p>
+            <div id="connectionStatus" class="status-indicator status-disconnected">
+                <i class="fas fa-circle"></i>
+                <span>Connecting...</span>
+            </div>
+        </div>
+
+        <div class="sensor-grid">
+            <div class="sensor-card">
+                <div class="sensor-icon">
+                    <i class="fas fa-thermometer-half"></i>
+                </div>
+                <div class="sensor-label">Temperature</div>
+                <div id="temperatureValue" class="sensor-value loading">--</div>
+                <div class="sensor-unit">°C</div>
+            </div>
+
+            <div class="sensor-card">
+                <div class="sensor-icon">
+                    <i class="fas fa-tint"></i>
+                </div>
+                <div class="sensor-label">Humidity</div>
+                <div id="humidityValue" class="sensor-value loading">--</div>
+                <div class="sensor-unit">%</div>
+            </div>
+        </div>
+
+        <div class="controls-section">
+            <h2 class="controls-title">
+                <i class="fas fa-lightbulb"></i> LED Control
+            </h2>
+
+            <div class="led-status">
+                <span>LED Status:</span>
+                <div id="ledIndicator" class="led-indicator"></div>
+                <span id="ledStatusText">OFF</span>
+            </div>
+
+            <div class="button-group">
+                <button id="ledOn" class="control-button btn-on">
+                    <i class="fas fa-power-off"></i>
+                    Turn ON
+                </button>
+                <button id="ledOff" class="control-button btn-off">
+                    <i class="fas fa-power-off"></i>
+                    Turn OFF
+                </button>
+            </div>
+        </div>
+
+        <div class="data-history">
+            <div class="history-title">
+                <i class="fas fa-history"></i> Recent Readings
+            </div>
+            <div id="dataHistory"></div>
+        </div>
+
+        <div class="last-updated">
+            <i class="fas fa-clock"></i>
+            Last updated: <span id="lastUpdated">Never</span>
+        </div>
+    </div>
 
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
     <script>
+        // MQTT over WebSocket configuration
         const brokerUrl = 'ws://157.173.101.159:9001/mqtt';
         const sensorTopic = 'sensor/data';
         const ledTopic = 'climateControl';
-        let ledState = 'OFF';
 
+        // UI Elements
+        const connectionStatus = document.getElementById('connectionStatus');
+        const temperatureValue = document.getElementById('temperatureValue');
+        const humidityValue = document.getElementById('humidityValue');
+        const ledIndicator = document.getElementById('ledIndicator');
+        const ledStatusText = document.getElementById('ledStatusText');
+        const lastUpdated = document.getElementById('lastUpdated');
+        const dataHistory = document.getElementById('dataHistory');
+
+        // Data storage
+        let sensorHistory = [];
+        let currentLedState = 'OFF';
+
+        // Connect to MQTT broker
         const client = mqtt.connect(brokerUrl, {
             clientId: 'web_client_' + Math.random().toString(16).slice(3)
         });
 
+        // Update connection status
+        function updateConnectionStatus(connected) {
+            if (connected) {
+                connectionStatus.className = 'status-indicator status-connected';
+                connectionStatus.innerHTML = '<i class="fas fa-circle"></i><span>Connected</span>';
+            } else {
+                connectionStatus.className = 'status-indicator status-disconnected';
+                connectionStatus.innerHTML = '<i class="fas fa-circle"></i><span>Disconnected</span>';
+            }
+        }
+
+        // Update LED status
+        function updateLedStatus(state) {
+            currentLedState = state;
+            ledStatusText.textContent = state;
+
+            if (state === 'ON') {
+                ledIndicator.classList.add('on');
+            } else {
+                ledIndicator.classList.remove('on');
+            }
+        }
+
+        // Add to history
+        function addToHistory(temperature, humidity) {
+            const timestamp = new Date().toLocaleTimeString();
+            sensorHistory.unshift({
+                time: timestamp,
+                temperature: temperature,
+                humidity: humidity
+            });
+
+            // Keep only last 5 readings
+            if (sensorHistory.length > 5) {
+                sensorHistory = sensorHistory.slice(0, 5);
+            }
+
+            // Update history display
+            dataHistory.innerHTML = sensorHistory.map(item =>
+                `<div class="history-item">
+                    <span>${item.time}</span>
+                    <span>${item.temperature.toFixed(1)}°C / ${item.humidity.toFixed(1)}%</span>
+                </div>`
+            ).join('');
+        }
+
+        // Update last updated time
+        function updateLastUpdated() {
+            lastUpdated.textContent = new Date().toLocaleString();
+        }
+
         client.on('connect', () => {
             console.log('Connected to MQTT broker');
+            updateConnectionStatus(true);
+
             client.subscribe(sensorTopic, (err) => {
                 if (!err) {
                     console.log(`Subscribed to ${sensorTopic}`);
+                } else {
+                    console.error('Subscription error:', err);
                 }
             });
         });
 
+        // Handle incoming sensor data
         client.on('message', (topic, message) => {
             if (topic === sensorTopic) {
+                const rawMessage = message.toString();
+                console.log('Raw message:', rawMessage);
+
                 try {
-                    const data = JSON.parse(message.toString());
-                    document.getElementById('sensorData').innerText =
-                        `Temperature: ${data.temperature} °C | Humidity: ${data.humidity} %`;
+                    let data;
+                    if (rawMessage.startsWith('TEMP:')) {
+                        // Parse non-JSON format: TEMP:22.20,HUM:64.00
+                        const parts = rawMessage.split(',');
+                        const temp = parseFloat(parts[0].split(':')[1]);
+                        const hum = parseFloat(parts[1].split(':')[1]);
+                        data = { temperature: temp, humidity: hum };
+                    } else {
+                        // Parse expected JSON format
+                        data = JSON.parse(rawMessage);
+                    }
+
+                    // Update UI with animation
+                    temperatureValue.classList.remove('loading');
+                    humidityValue.classList.remove('loading');
+
+                    temperatureValue.textContent = data.temperature.toFixed(1);
+                    humidityValue.textContent = data.humidity.toFixed(1);
+
+                    // Add to history and update timestamp
+                    addToHistory(data.temperature, data.humidity);
+                    updateLastUpdated();
+
                 } catch (e) {
                     console.error('Error parsing sensor data:', e);
                 }
             }
         });
 
-        document.getElementById('ledToggle').addEventListener('click', () => {
-            ledState = ledState === 'OFF' ? 'ON' : 'OFF';
-            const payload = JSON.stringify({ led: ledState });
+        // LED ON button
+        document.getElementById('ledOn').addEventListener('click', () => {
+            const payload = JSON.stringify({ led: 'ON' });
             client.publish(ledTopic, payload);
             console.log(`Published to ${ledTopic}: ${payload}`);
+            updateLedStatus('ON');
         });
+
+        // LED OFF button
+        document.getElementById('ledOff').addEventListener('click', () => {
+            const payload = JSON.stringify({ led: 'OFF' });
+            client.publish(ledTopic, payload);
+            console.log(`Published to ${ledTopic}: ${payload}`);
+            updateLedStatus('OFF');
+        });
+
+        // Handle connection errors
+        client.on('error', (err) => {
+            console.error('MQTT connection error:', err);
+            updateConnectionStatus(false);
+        });
+
+        client.on('close', () => {
+            console.log('MQTT connection closed');
+            updateConnectionStatus(false);
+        });
+
+        client.on('offline', () => {
+            console.log('MQTT client offline');
+            updateConnectionStatus(false);
+        });
+
+        // Initialize LED status
+        updateLedStatus('OFF');
     </script>
 </body>
+
 </html>
