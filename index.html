@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sensor Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
+        #sensorData { margin-bottom: 20px; font-size: 18px; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Sensor Dashboard</h1>
+    <div id="sensorData">Temperature: -- °C | Humidity: -- %</div>
+    <button id="ledToggle">Toggle LED</button>
+
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+    <script>
+        // MQTT over WebSocket configuration
+        const brokerUrl = 'ws://157.173.101.159:9001/mqtt';
+        const sensorTopic = 'sensor/data';
+        const ledTopic = 'climateControl';
+        let ledState = 'OFF';
+
+        // Connect to MQTT broker
+        const client = mqtt.connect(brokerUrl, {
+            clientId: 'web_client_' + Math.random().toString(16).slice(3)
+        });
+
+        client.on('connect', () => {
+            console.log('Connected to MQTT broker');
+            client.subscribe(sensorTopic, (err) => {
+                if (!err) {
+                    console.log(`Subscribed to ${sensorTopic}`);
+                }
+            });
+        });
+
+        // Handle incoming sensor data
+        client.on('message', (topic, message) => {
+            if (topic === sensorTopic) {
+                try {
+                    const data = JSON.parse(message.toString());
+                    document.getElementById('sensorData').innerText =
+                        `Temperature: ${data.temperature} °C | Humidity: ${data.humidity} %`;
+                } catch (e) {
+                    console.error('Error parsing sensor data:', e);
+                }
+            }
+        });
+
+        // LED toggle button
+        document.getElementById('ledToggle').addEventListener('click', () => {
+            ledState = ledState === 'OFF' ? 'ON' : 'OFF';
+            const payload = JSON.stringify({ led: ledState });
+            client.publish(ledTopic, payload);
+            console.log(`Published to ${ledTopic}: ${payload}`);
+        });
+    </script>
+</body>
+</html>
